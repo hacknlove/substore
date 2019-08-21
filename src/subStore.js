@@ -44,7 +44,7 @@ function subStoreCreateReducer (state, action) { // tested
   }
 }
 
-function subStoreCheckExists (state, action) {
+function subStoreCheckExists (state, action) { // tested
   if (!action.subAction) {
     return state
   }
@@ -58,8 +58,8 @@ function subStoreCheckExists (state, action) {
 }
 
 function subStoreClean (state, action) {
-  if (action.type !== `@hacknlove/substore/${action.key}/clean` && action.clean) {
-    if (!state['@hacknlove/substore'][action.key].count === 1) {
+  if (action.type === `@hacknlove/substore/${action.key}/clean` && action.clean) {
+    if (state['@hacknlove/substore'][action.key].count === 1) {
       const newSubstores = {
         ...state['@hacknlove/substore']
       }
@@ -74,8 +74,8 @@ function subStoreClean (state, action) {
       '@hacknlove/substore': {
         ...state['@hacknlove/substore'],
         [action.key]: {
-          count: state[`@hacknlove/substore/${action.key}`].count - 1,
-          reducers: state[`@hacknlove/substore/${action.key}`].reducers
+          count: state['@hacknlove/substore'][action.key].count - 1,
+          reducers: state['@hacknlove/substore'][action.key].reducers
         }
       }
     }
