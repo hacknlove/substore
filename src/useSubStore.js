@@ -1,5 +1,5 @@
 const { useEffect } = require('react')
-const store = require('../reduxplus/src/store')
+const store = require('../../reduxplus/src/store')
 
 module.exports = function useSubStore (options) {
   const {
