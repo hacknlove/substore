@@ -1,6 +1,6 @@
 const store = require('@hacknlove/reduxplus')
-const getValue = require('@hacknlove/reduxplus/getValue')
-const setValue = require('@hacknlove/reduxplus/setValue')
+const getValue = require('@hacknlove/reduxplus/src/getValue')
+const setValue = require('@hacknlove/reduxplus/src/setValue')
 
 const reducers = {
 }
@@ -10,16 +10,22 @@ store.hydrate({
   }
 })
 
-function subStoreCreateReducer (state, action) {
+function substoreHasKeyReducer (state, action) { // tested
+  if (!action.key) {
+    return state
+  }
+}
+
+function subStoreCreateReducer (state, action) { // tested
   if (action.type === `@hacknlove/substore/${action.key}`) {
-    if (state[`@hacknlove/substore/${action.key}`]) {
+    if (state['@hacknlove/substore'][action.key]) {
       return {
         ...state,
         '@hacknlove/substore': {
           ...state['@hacknlove/substore'],
           [action.key]: {
-            count: state[`@hacknlove/substore/${action.key}`].count + 1,
-            reducers: state[`@hacknlove/substore/${action.key}`].reducers
+            count: state['@hacknlove/substore'][action.key].count + 1,
+            reducers: state['@hacknlove/substore'][action.key].reducers
           }
         }
       }
@@ -30,7 +36,7 @@ function subStoreCreateReducer (state, action) {
       '@hacknlove/substore': {
         ...state['@hacknlove/substore'],
         [action.key]: {
-          count: 0,
+          count: 1,
           reducers: []
         }
       }
@@ -101,11 +107,8 @@ function subStoreDispatch (state, action) {
 }
 
 function subStoreReducer (state, action) {
-  if (!action.key) {
-    return state
-  }
-
-  return subStoreCreateReducer(state, action) ||
+  return substoreHasKeyReducer(state, action) ||
+    subStoreCreateReducer(state, action) ||
     subStoreCheckExists(state, action) ||
     subStoreClean(state, action) ||
     subStoreDispatch(state, action)
@@ -188,6 +191,7 @@ function subStore (key) {
 exports.subStore = subStore
 
 if (process.env.NODE_ENV === 'test') {
+  exports.substoreHasKeyReducer = substoreHasKeyReducer
   exports.subStoreCreateReducer = subStoreCreateReducer
   exports.subStoreCheckExists = subStoreCheckExists
   exports.subStoreClean = subStoreClean
