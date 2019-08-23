@@ -1,5 +1,5 @@
 import test from 'ava'
-import { substoreHasKeyReducer, subStore, subStoreCreateReducer, subStoreCheckExists, subStoreClean, subStoreDispatch, subStoreReducer } from '../src/subStore'
+import { substoreHasKeyReducer, subStore, subStoreCreateReducer, subStoreCheckExists, subStoreClean, subStoreDispatch, subStoreReducer, reducers } from '../src/subStore'
 
 test('substoreHasKeyReducer devuelve state si action no tiene key', t => {
   const oldState = {}
@@ -195,4 +195,31 @@ test('subStoreDispatch devuelve state si no concuerda el type', t => {
     }
   })
   t.is(newState, oldState)
+})
+
+test.serial('subStoreDispatch devuelve el resultado de aplicar todos los subReducers del subStore al estado', t => {
+
+  reducers.a = (state, action) => {
+  }
+  '2' (state, action) {
+  },
+  '3' (state, action) {
+  },
+  '4' (state, action) {
+  }
+
+  const oldState = {
+    '@hacknlove/substore': {
+      'kjghs': {
+        count: 1,
+        reducers: [
+        ]
+      }
+    },
+    'kjghs': 0
+  }
+
+  const newState = subStoreDispatch(oldState, {
+
+  })
 })
