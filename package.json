@@ -1,5 +1,5 @@
 {
-  "name": "substore",
+  "name": "@hacknlove/substore",
   "version": "1.0.1",
   "description": "organize your redux with substores",
   "main": "src/index.js",
