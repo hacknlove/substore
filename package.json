@@ -29,7 +29,7 @@
     "eslint-plugin-standard": "^4.0.0",
     "react": "^16.9.0"
   },
-  "dependencies": {
-    "@hacknlove/reduxplus": "^1.3.0"
+  "peerDependencies": {
+    "@hacknlove/reduxplus": "^1.5.3"
   }
 }
