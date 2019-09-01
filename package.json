@@ -7,7 +7,7 @@
     "/src"
   ],
   "scripts": {
-    "test": "ava --watch"
+    "test": "jest --watch"
   },
   "repository": {
     "type": "git",
@@ -20,13 +20,19 @@
   },
   "homepage": "https://github.com/hacknlove/substore#readme",
   "devDependencies": {
-    "ava": "^2.3.0",
+    "@hacknlove/reduxplus": "^1.5.2",
+    "babel-eslint": "^10.0.3",
+    "babel-jest": "^24.9.0",
+    "babel-preset-power-assert": "^3.0.0",
     "eslint": "^6.1.0",
     "eslint-config-standard": "^13.0.1",
     "eslint-plugin-import": "^2.18.2",
+    "eslint-plugin-jest": "^22.16.0",
     "eslint-plugin-node": "^9.1.0",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.0",
+    "jest": "^24.9.0",
+    "power-assert": "^1.6.1",
     "react": "^16.9.0"
   },
   "peerDependencies": {
