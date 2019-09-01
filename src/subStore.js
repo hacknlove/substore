@@ -1,14 +1,10 @@
 const store = require('@hacknlove/reduxplus')
 const getValue = require('@hacknlove/reduxplus/src/getValue')
 const setValue = require('@hacknlove/reduxplus/src/setValue')
+const isDifferent = require('isdifferent')
+const reducers = {}
 
-const reducers = {
-}
-
-store.hydrate({
-  '@hacknlove/substore': {
-  }
-})
+const subStores = {}
 
 function substoreHasKeyReducer (state, action) { // tested
   if (!action.key) {
@@ -16,30 +12,48 @@ function substoreHasKeyReducer (state, action) { // tested
   }
 }
 
-function subStoreCreateReducer (state, action) { // tested
-  if (action.type === `@hacknlove/substore/${action.key}`) {
-    if (state['@hacknlove/substore'][action.key]) {
-      return {
-        ...state,
-        '@hacknlove/substore': {
-          ...state['@hacknlove/substore'],k
-          [action.key]: {
-            count: state['@hacknlove/substore'][action.key].count + 1,
-            reducers: state['@hacknlove/substore'][action.key].reducers
-          }
-        }
-      }
-    }
+function subStoreSetReducer (state, action) { // tested
+  if (action.type !== `º${action.key}`) {
+    return
+  }
 
+  if (!state.º) {
     return {
       ...state,
-      '@hacknlove/substore': {
-        ...state['@hacknlove/substore'],
-        [action.key]: {
-          count: 1,
-          reducers: []
-        }
+      º: {
+        [action.key]: [action.reducer]
       }
+    }
+  }
+  if (!state.º[action.key]) {
+    return {
+      ...state,
+      º: {
+        ...state.º,
+        [action.key]: [action.reducer]
+      }
+    }
+  }
+  if (state.º[action.key].includes(action.reducer)) {
+    return state
+  }
+  return {
+    ...state,
+    º: {
+      [action.key]: [...state.º[action.key], action.reducer]
+    }
+  }
+}
+
+function subStoreClean (state, action) { // tested
+  if (action.type === `º${action.key}/clean` && action.clean) {
+    const newSubstores = {
+      ...state.º
+    }
+    delete newSubstores[action.key]
+    return {
+      ...state,
+      º: newSubstores
     }
   }
 }
@@ -52,45 +66,23 @@ function subStoreCheckExists (state, action) { // tested
     return state
   }
 
-  if (!state['@hacknlove/substore'][action.key]) {
+  if (!state.º[action.key]) {
+    return state
+  }
+  if (state.º[action.key].length === 0) {
     return state
   }
 }
 
-function subStoreClean (state, action) { // tested
-  if (action.type === `@hacknlove/substore/${action.key}/clean` && action.clean) {
-    if (state['@hacknlove/substore'][action.key].count === 1) {
-      const newSubstores = {
-        ...state['@hacknlove/substore']
-      }
-      delete newSubstores[action.key]
-      return {
-        ...state,
-        '@hacknlove/substore': newSubstores
-      }
-    }
-    return {
-      ...state,
-      '@hacknlove/substore': {
-        ...state['@hacknlove/substore'],
-        [action.key]: {
-          count: state['@hacknlove/substore'][action.key].count - 1,
-          reducers: state['@hacknlove/substore'][action.key].reducers
-        }
-      }
-    }
-  }
-}
-
-function subStoreDispatch (state, action) {
-  if (action.type !== `@hacknlove/substore/${action.key}/${action.subAction.type}`) {
+function subStoreDispatch (state, action) { // tested
+  if (action.type !== `º${action.key}/${action.subAction.type}`) {
     return state
   }
 
   return setValue(
     state,
     action.key,
-    state['@hacknlove/substore'][action.key].subReducers.reduce(
+    state.º[action.key].reduce(
       (state, reducer) => {
         if (typeof reducers[reducer] === 'function') {
           return reducers[reducer](state, action.subAction)
@@ -106,9 +98,9 @@ function subStoreDispatch (state, action) {
   )
 }
 
-function subStoreReducer (state, action) {
+function subStoreReducer (state, action) { // tested
   return substoreHasKeyReducer(state, action) ||
-    subStoreCreateReducer(state, action) ||
+    subStoreSetReducer(state, action) ||
     subStoreCheckExists(state, action) ||
     subStoreClean(state, action) ||
     subStoreDispatch(state, action)
@@ -117,32 +109,45 @@ function subStoreReducer (state, action) {
 store.setReducer(subStoreReducer)
 
 class SubStore {
-  constructor (key, sub) {
+  constructor (key) {
     this.key = key
-    this.subscriptions = []
-    this.substores = []
+    this.subscriptions = {}
+    this.substores = {}
+    this.i = 1
+
+    this.__subscription = store.subscribeKey(this.key, state => {
+      Object.values(this.subscriptions).forEach(cb => cb(state))
+    })
   }
 
-  getState () {
+  setReducer (reducer) { // tested
+    store.dispatch({
+      type: `º${this.key}`,
+      key: this.key,
+      reducer
+    })
+  }
+
+  getState () { // tested
     return getValue(store.getState(), this.key)
   }
 
-  dispatch (action) {
+  dispatch (action) { // tested
     store.dispatch({
-      type: `@hacknlove/substore/${this.key}/${action.type}`,
+      type: `º${this.key}/${action.type}`,
       key: this.key,
       subAction: action
     })
   }
 
-  useRedux (key) {
+  useRedux (key) { // not tested
     if (key === undefined) {
       return store.useRedux(this.key)
     }
     return store.useRedux(`${this.key}.${key}`)
   }
 
-  hydrate (newState, replace = false) {
+  hydrate (newState, replace = false) { // tested
     if (!replace) {
       newState = {
         ...this.getState(),
@@ -152,48 +157,72 @@ class SubStore {
     store.hydrate(setValue({}, this.key, newState))
   }
 
-  subscribe (callback) {
-    const unsuscribe = store.subscribeKey(this.key, callback)
-    this.subscriptions.push(unsuscribe)
-    return unsuscribe
+  subscribe (callback) { // tested
+    var sk
+    do {
+      sk = Math.random().toString(36).substr(2) + (Date.now() % 1000).toString(36)
+    } while (this.subscriptions[sk])
+    this.subscriptions[sk] = callback
+    return () => {
+      delete this.subscriptions[sk]
+    }
   }
 
-  subscribeKey (key, callback) {
-    const unsuscribe = store.subscribeKey(`${this.key}.${key}`, callback)
-    this.subscriptions.push(unsuscribe)
-    return unsuscribe
+  subscribeKey (key, callback) { // tested
+    var value = getValue(this.getState(), key)
+
+    return this.subscribe(() => {
+      const newValue = getValue(this.getState(), key)
+      if (isDifferent(value, newValue)) {
+        value = newValue
+        callback(newValue)
+      }
+    })
   }
 
   clean (data) {
+    this.subscriptions = {}
+    var cleaned = () => {
+      throw new Error('subStore cleaned')
+    }
+    ;['subscribe', 'subsccribeKey', 'subStore', 'getState', 'setReducer', 'dispatch', 'useRedux', 'hydrate'].forEach(k => {
+      this[k] = cleaned
+    })
+    this.__subscription()
+
+    Object.values(this.substores).forEach(sub => sub.clean())
+
     store.dispatch({
-      type: `@hacknlove/substore/${this.key}/clean`,
+      type: `º${this.key}/clean`,
       clean: true
     })
-    this.subscriptions.forEach(unsuscribe => unsuscribe())
-    this.substores.forEach(substore => substore.clean())
   }
 
   subStore (key) {
-    return subStore(`${this.key}.key`)
+    if (this.substores[key]) {
+      this.substores.i++
+      return this.substores[key]
+    }
+
+    this.substores[key] = new SubStore(`${this.key}.${key}`)
+    return this.substores[key]
   }
 }
 
-function subStore (key) {
-  store.dispatch({
-    type: `@hacknlove/substore/${key}`,
-    action: {
-      key
-    }
-  })
-  return new SubStore(key)
+exports.subStore = function subStore (key, init) {
+  if (subStores[key]) {
+    subStores[key].__i++
+    return subStores[key]
+  }
+  subStores[key] = new SubStore(key)
+  init && init()
+  return subStores[key]
 }
-
-exports.subStore = subStore
 
 if (process.env.NODE_ENV === 'test') {
   exports.reducers = reducers
   exports.substoreHasKeyReducer = substoreHasKeyReducer
-  exports.subStoreCreateReducer = subStoreCreateReducer
+  exports.subStoreSetReducer = subStoreSetReducer
   exports.subStoreCheckExists = subStoreCheckExists
   exports.subStoreClean = subStoreClean
   exports.subStoreDispatch = subStoreDispatch
