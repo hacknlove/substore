@@ -1,7 +1,7 @@
 const store = require('@hacknlove/reduxplus')
-const getValue = require('@hacknlove/reduxplus/src/getValue')
-const setValue = require('@hacknlove/reduxplus/src/setValue')
+const { getValue, setValue, deleteValue } = require('@hacknlove/deepobject')
 const isDifferent = require('isdifferent')
+const useRedux = require('./useRedux')
 const reducers = {}
 
 const subStores = {}
@@ -43,6 +43,30 @@ function subStoreSetReducer (state, action) { // tested
       [action.key]: [...state.º[action.key], action.reducer]
     }
   }
+}
+
+function subStoreMove (state, action) {
+  if (!action.toKey) {
+    return
+  }
+
+  if (action.type !== `º${action.key}/move`) {
+    return
+  }
+
+  var newState = setValue(
+    state,
+    action.toKey,
+    getValue(state, action.key)
+  )
+  newState = deleteValue(
+    newState,
+    action.key
+  )
+  newState.º[action.toKey] = newState.º[action.key]
+  delete newState.º[action.key]
+
+  return newState
 }
 
 function subStoreClean (state, action) { // tested
@@ -142,9 +166,9 @@ class SubStore {
 
   useRedux (key) { // not tested
     if (key === undefined) {
-      return store.useRedux(this.key)
+      return useRedux(this)
     }
-    return store.useRedux(`${this.key}.${key}`)
+    return useRedux(this, key)
   }
 
   hydrate (newState, replace = false) { // tested
@@ -191,6 +215,7 @@ class SubStore {
     this.__subscription()
 
     Object.values(this.substores).forEach(sub => sub.clean())
+    delete subStores[this.key]
 
     store.dispatch({
       type: `º${this.key}/clean`,
@@ -217,6 +242,23 @@ exports.subStore = function subStore (key, init) {
   subStores[key] = new SubStore(key)
   init && init()
   return subStores[key]
+}
+
+exports.moveSubstore = function (fromKey, toKey) {
+  if (!subStores[fromKey]) {
+    throw new Error('subStore not found')
+  }
+  if (subStores[toKey]) {
+    throw new Error('destination exists')
+  }
+  if (!toKey) {
+    throw new Error('Bad destination')
+  }
+  store.dispatch({
+    type: `º${fromKey}/move`,
+    key: fromKey,
+    move: toKey
+  })
 }
 
 if (process.env.NODE_ENV === 'test') {

@@ -24,6 +24,6 @@ module.exports = function useSubStore (options) {
 
   useEffect(() => {
     return sub.cleanDebounced(500, clean)
-  })
+  }, [])
   return sub
 }
