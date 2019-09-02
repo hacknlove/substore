@@ -21,6 +21,7 @@
   "homepage": "https://github.com/hacknlove/substore#readme",
   "devDependencies": {
     "@hacknlove/reduxplus": "^1.5.2",
+    "@testing-library/react-hooks": "^2.0.1",
     "babel-eslint": "^10.0.3",
     "babel-jest": "^24.9.0",
     "babel-preset-power-assert": "^3.0.0",
@@ -33,9 +34,13 @@
     "eslint-plugin-standard": "^4.0.0",
     "jest": "^24.9.0",
     "power-assert": "^1.6.1",
-    "react": "^16.9.0"
+    "react": "^16.9.0",
+    "react-test-renderer": "^16.9.0"
   },
   "peerDependencies": {
     "@hacknlove/reduxplus": "^1.5.3"
+  },
+  "dependencies": {
+    "@hacknlove/deepobject": "^1.0.0"
   }
 }
