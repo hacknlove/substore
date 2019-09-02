@@ -6,15 +6,21 @@ const reducers = {}
 
 const subStores = {}
 
-function substoreHasKeyReducer (state, action) { // tested
-  if (!action.key) {
+function isSubstoreAction (state, action) { // tested
+  if (action.key === undefined) {
+    return state
+  }
+  if (action.type[0] !== 'º') {
     return state
   }
 }
 
 function subStoreSetReducer (state, action) { // tested
-  if (action.type !== `º${action.key}`) {
+  if (!action.reducer) {
     return
+  }
+  if (action.type !== `º${action.key}/setReducer`) {
+    return state
   }
 
   if (!state.º) {
@@ -25,6 +31,7 @@ function subStoreSetReducer (state, action) { // tested
       }
     }
   }
+
   if (!state.º[action.key]) {
     return {
       ...state,
@@ -45,40 +52,29 @@ function subStoreSetReducer (state, action) { // tested
   }
 }
 
-function subStoreMove (state, action) {
-  if (!action.toKey) {
-    return
-  }
-
-  if (action.type !== `º${action.key}/move`) {
-    return
-  }
-
-  var newState = setValue(
-    state,
-    action.toKey,
-    getValue(state, action.key)
-  )
-  newState = deleteValue(
-    newState,
-    action.key
-  )
-  newState.º[action.toKey] = newState.º[action.key]
-  delete newState.º[action.key]
-
-  return newState
-}
-
 function subStoreClean (state, action) { // tested
-  if (action.type === `º${action.key}/clean` && action.clean) {
-    const newSubstores = {
-      ...state.º
-    }
-    delete newSubstores[action.key]
-    return {
-      ...state,
-      º: newSubstores
-    }
+  if (action.clean === undefined) {
+    return
+  }
+  if (action.type !== `º${action.key}/clean`) {
+    return state
+  }
+  var newState
+
+  if (action.clean) {
+    newState = deleteValue(state, action.key)
+  } else {
+    newState = state
+  }
+
+  var newSubstores = {
+    ...newState.º
+  }
+  delete newSubstores[action.key]
+
+  return {
+    ...newState,
+    º: newSubstores
   }
 }
 
@@ -86,10 +82,9 @@ function subStoreCheckExists (state, action) { // tested
   if (!action.subAction) {
     return state
   }
-  if (!action.subAction.type) {
+  if (!state.º) {
     return state
   }
-
   if (!state.º[action.key]) {
     return state
   }
@@ -102,7 +97,6 @@ function subStoreDispatch (state, action) { // tested
   if (action.type !== `º${action.key}/${action.subAction.type}`) {
     return state
   }
-
   return setValue(
     state,
     action.key,
@@ -114,7 +108,7 @@ function subStoreDispatch (state, action) { // tested
         if (typeof reducer === 'function') {
           return reducer(state, action.subAction)
         }
-        console.error('reducer not found', action, reducer)
+        console.warn('reducer not found', action.subAction, reducer)
         return state
       },
       getValue(state, action.key)
@@ -123,7 +117,7 @@ function subStoreDispatch (state, action) { // tested
 }
 
 function subStoreReducer (state, action) { // tested
-  return substoreHasKeyReducer(state, action) ||
+  return isSubstoreAction(state, action) ||
     subStoreSetReducer(state, action) ||
     subStoreCheckExists(state, action) ||
     subStoreClean(state, action) ||
@@ -146,7 +140,7 @@ class SubStore {
 
   setReducer (reducer) { // tested
     store.dispatch({
-      type: `º${this.key}`,
+      type: `º${this.key}/setReducer`,
       key: this.key,
       reducer
     })
@@ -164,7 +158,7 @@ class SubStore {
     })
   }
 
-  useRedux (key) { // not tested
+  useRedux (key) { // tested
     if (key === undefined) {
       return useRedux(this)
     }
@@ -205,11 +199,14 @@ class SubStore {
   }
 
   clean (data) {
+    if (--this.i) {
+      return
+    }
     this.subscriptions = {}
     var cleaned = () => {
       throw new Error('subStore cleaned')
     }
-    ;['subscribe', 'subsccribeKey', 'subStore', 'getState', 'setReducer', 'dispatch', 'useRedux', 'hydrate'].forEach(k => {
+    ;['subscribe', 'subsccribeKey', 'subStore', 'getState', 'setReducer', 'dispatch', 'useRedux', 'hydrate', 'clean'].forEach(k => {
       this[k] = cleaned
     })
     this.__subscription()
@@ -219,51 +216,35 @@ class SubStore {
 
     store.dispatch({
       type: `º${this.key}/clean`,
-      clean: true
+      key: this.key,
+      clean: data
     })
   }
 
   subStore (key) {
-    if (this.substores[key]) {
-      this.substores.i++
-      return this.substores[key]
-    }
+    var sk
+    do {
+      sk = Math.random().toString(36).substr(2) + (Date.now() % 1000).toString(36)
+    } while (this.substores[sk])
 
-    this.substores[key] = new SubStore(`${this.key}.${key}`)
-    return this.substores[key]
+    this.substores[sk] = new SubStore(`${this.key}.${key}`)
+    return this.substores[sk]
   }
 }
 
 exports.subStore = function subStore (key, init) {
   if (subStores[key]) {
-    subStores[key].__i++
+    subStores[key].i++
     return subStores[key]
   }
   subStores[key] = new SubStore(key)
   init && init()
   return subStores[key]
 }
-
-exports.moveSubstore = function (fromKey, toKey) {
-  if (!subStores[fromKey]) {
-    throw new Error('subStore not found')
-  }
-  if (subStores[toKey]) {
-    throw new Error('destination exists')
-  }
-  if (!toKey) {
-    throw new Error('Bad destination')
-  }
-  store.dispatch({
-    type: `º${fromKey}/move`,
-    key: fromKey,
-    move: toKey
-  })
-}
+exports.reducers = reducers
 
 if (process.env.NODE_ENV === 'test') {
-  exports.reducers = reducers
-  exports.substoreHasKeyReducer = substoreHasKeyReducer
+  exports.isSubstoreAction = isSubstoreAction
   exports.subStoreSetReducer = subStoreSetReducer
   exports.subStoreCheckExists = subStoreCheckExists
   exports.subStoreClean = subStoreClean

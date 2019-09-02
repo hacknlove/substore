@@ -1,6 +1,6 @@
 const assert = require('assert')
 const {
-  substoreHasKeyReducer,
+  isSubstoreAction,
   subStoreSetReducer,
   subStoreCheckExists,
   subStoreClean,
@@ -8,16 +8,27 @@ const {
   reducers
 } = require('../src/subStore')
 
-describe('substoreHasKeyReducer', () => {
+describe('isSubstoreAction', () => {
   it('devuelve state si action no tiene key', () => {
     const oldState = {}
-    const newState = substoreHasKeyReducer(oldState, {})
+    const newState = isSubstoreAction(oldState, {
+      type: 'ºalgo'
+    })
     assert.strictEqual(newState, oldState)
   })
 
-  it('devuelve undefined si action tiene key', () => {
+  it('devuelve state si action type no empieza por º', () => {
     const oldState = {}
-    const newState = substoreHasKeyReducer(oldState, { key: 'tred' })
+    const newState = isSubstoreAction(oldState, {
+      type: 'whatever',
+      key: 'algo'
+    })
+    assert.strictEqual(newState, oldState)
+  })
+
+  it('devuelve undefined si action tiene key y type epieza por º', () => {
+    const oldState = {}
+    const newState = isSubstoreAction(oldState, { key: 'tred', type: 'ºtred/algo' })
     assert.strictEqual(newState, undefined)
   })
 })
@@ -25,21 +36,18 @@ describe('substoreHasKeyReducer', () => {
 describe('subStoreSetReducer', () => {
   it('devuelve undefined si type no concuerda', () => {
     const oldState = {}
-    const newState = substoreHasKeyReducer(oldState, {
+    const newState = subStoreSetReducer(oldState, {
       type: 'algo',
       key: 'tred'
     })
     assert.strictEqual(newState, undefined)
   })
 
-  it('inicia el substore en el state si la key concuerda y no está iniciado', () => {
-    const oldState = {
-      º: {
-      }
-    }
+  it('inicia el substore completamente, si es el primero que se crea', () => {
+    const oldState = {}
 
     const newState = subStoreSetReducer(oldState, {
-      type: 'ºfoo',
+      type: 'ºfoo/setReducer',
       key: 'foo',
       reducer: '234'
     })
@@ -51,6 +59,37 @@ describe('subStoreSetReducer', () => {
     })
   })
 
+  it('inicia el substore en el state si la key concuerda y no está iniciado', () => {
+    const oldState = {
+      º: {
+      }
+    }
+
+    const newState = subStoreSetReducer(oldState, {
+      type: 'ºfoo/setReducer',
+      key: 'foo',
+      reducer: '234'
+    })
+
+    assert.deepStrictEqual(newState, {
+      º: {
+        foo: ['234']
+      }
+    })
+  })
+
+  it('no es una acción de substore', () => {
+    const oldState = {}
+
+    const newState = subStoreSetReducer(oldState, {
+      type: 'ºfoo/noReducer',
+      key: 'foo',
+      reducer: '234'
+    })
+
+    assert.deepStrictEqual(newState, oldState)
+  })
+
   it('si el reducer existe no lo incluye', () => {
     const oldState = {
       º: {
@@ -59,7 +98,7 @@ describe('subStoreSetReducer', () => {
     }
 
     const newState = subStoreSetReducer(oldState, {
-      type: 'ºfoo',
+      type: 'ºfoo/setReducer',
       key: 'foo',
       reducer: 'algo'
     })
@@ -67,6 +106,47 @@ describe('subStoreSetReducer', () => {
     assert.deepStrictEqual(newState, {
       º: {
         foo: ['algo']
+      }
+    })
+  })
+
+  it('si el reducer no existe lo incluye', () => {
+    const oldState = {
+      º: {
+        foo: ['algo']
+      }
+    }
+
+    const newState = subStoreSetReducer(oldState, {
+      type: 'ºfoo/setReducer',
+      key: 'foo',
+      reducer: 'nuevo'
+    })
+
+    assert.deepStrictEqual(newState, {
+      º: {
+        foo: ['algo', 'nuevo']
+      }
+    })
+  })
+
+  it('acepta reducers que son funciones', () => {
+    const oldState = {
+      º: {
+        foo: ['algo']
+      }
+    }
+    function reducer () {
+
+    }
+    const newState = subStoreSetReducer(oldState, {
+      type: 'ºfoo/setReducer',
+      key: 'foo',
+      reducer
+    })
+    assert.deepStrictEqual(newState, {
+      º: {
+        foo: ['algo', reducer]
       }
     })
   })
@@ -87,7 +167,7 @@ describe('subStoreCheckExists', () => {
     assert.strictEqual(newState, oldState)
   })
 
-  it('subStoreCheckExists devuelve state si no existe el subStore para la key', () => {
+  it('devuelve state si no existe el subStore para la key', () => {
     const oldState = {
       º: {
 
@@ -102,7 +182,7 @@ describe('subStoreCheckExists', () => {
     assert.strictEqual(newState, oldState)
   })
 
-  it('subStoreCheckExists devuelve undefined si existe el substore', () => {
+  it('devuelve undefined si existe el substore', () => {
     const oldState = {
       º: {
         foo: {}
@@ -110,6 +190,21 @@ describe('subStoreCheckExists', () => {
     }
     const newState = subStoreCheckExists(oldState, {
       key: 'fo',
+      subAction: {
+        type: 'dfkjhg'
+      }
+    })
+    assert.strictEqual(newState, oldState)
+  })
+
+  it('devuelve state si el substore no tiene reducers', () => {
+    const oldState = {
+      º: {
+        sdg: []
+      }
+    }
+    const newState = subStoreCheckExists(oldState, {
+      key: 'sdg',
       subAction: {
         type: 'dfkjhg'
       }
@@ -140,6 +235,9 @@ describe('subStoreClean', () => {
     const oldState = {
       º: {
         foo: []
+      },
+      foo: {
+        bar: true
       }
     }
     const newState = subStoreClean(oldState, {
@@ -151,6 +249,38 @@ describe('subStoreClean', () => {
       º: {
       }
     })
+  })
+
+  it('subStoreClean mantiene el estado si clean es false', () => {
+    const oldState = {
+      º: {
+        foo: []
+      },
+      foo: {
+        bar: true
+      }
+    }
+    const newState = subStoreClean(oldState, {
+      type: 'ºfoo/clean',
+      key: 'foo',
+      clean: false
+    })
+    assert.deepStrictEqual(newState, {
+      º: {
+      },
+      foo: {
+        bar: true
+      }
+    })
+  })
+
+  it('returns state si no es una acción de substore', () => {
+    const oldState = {}
+    const newState = subStoreClean(oldState, {
+      type: 'ºalgo/cosa',
+      clean: true
+    })
+    assert.strictEqual(newState, oldState)
   })
 })
 
@@ -178,7 +308,7 @@ describe('subStoreDispatch', () => {
     assert.strictEqual(newState, oldState)
   })
 
-  it('subStoreDispatch, llama a los reducers indicados, uno a uno, en el orden en que han sido asignados', () => {
+  it('subStoreDispatch, llama a los reducers indicados, uno a uno, en el orden en que han sido asignados, incluido las funciones', () => {
     reducers.fail = () => {
       assert.fail('no debería haber llamado a este reducer')
     }
@@ -205,7 +335,11 @@ describe('subStoreDispatch', () => {
 
     const oldState = {
       º: {
-        kjghs: ['a', 'b', 'c', 'd']
+        kjghs: ['a', 'b', 'c', 'd', function (state, action) {
+          assert.strictEqual(state, 'd')
+          assert.deepStrictEqual(action, { type: 'ert', foo: 'bar' })
+          return 'e'
+        }]
       },
       kjghs: 'pre'
     }
@@ -219,11 +353,41 @@ describe('subStoreDispatch', () => {
       }
     })
 
+    assert(newState.kjghs === 'e')
+  })
+
+  it('pinta un warning excepción si el reducer no existe ni es una función', () => {
+    expect.assertions(1)
+    const oldState = {
+      º: {
+        kjghs: ['noexiste']
+      },
+      kjghs: 'pre'
+    }
+    jest.spyOn(console, 'warn').mockImplementation((message, action, reducer) => {
+      expect(true).toBe(true)
+      assert(message === 'reducer not found')
+      assert.deepStrictEqual(action, {
+        type: 'ert',
+        foo: 'bar'
+      })
+      assert(reducer === 'noexiste')
+    })
+
+    const newState = subStoreDispatch(oldState, {
+      type: 'ºkjghs/ert',
+      key: 'kjghs',
+      subAction: {
+        type: 'ert',
+        foo: 'bar'
+      }
+    })
+
     assert.deepStrictEqual(newState, {
       º: {
-        kjghs: ['a', 'b', 'c', 'd']
+        kjghs: ['noexiste']
       },
-      kjghs: 'd'
+      kjghs: 'pre'
     })
   })
 })

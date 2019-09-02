@@ -1,12 +1,11 @@
 const assert = require('assert')
 const store = require('@hacknlove/reduxplus')
-
-process.env.NODE_ENV = 'production'
 const { reducers } = require('../src/index')
-process.env.NODE_ENV = 'test'
+
+const sub1 = store.subStore('5o98546')
 
 describe('basico integracion', () => {
-  const substore = store.subStore('kjdhfgkjywer')
+  const substore = sub1.subStore('kjdhfgkjywer')
   beforeEach(() => {
     substore.hydrate({
       xcvb: 'tyu'
@@ -58,7 +57,7 @@ describe('basico integracion', () => {
     it('set reducer crea una entrada en el store para almacenar los reducers del substore', () => {
       substore.setReducer('cucucu')
       assert.deepStrictEqual(store.getState().º, {
-        kjdhfgkjywer: ['cucucu']
+        '5o98546.kjdhfgkjywer': ['cucucu']
       })
     })
     it('dispatch llama al reducer indicado con el state y action correcto', () => {
@@ -136,39 +135,13 @@ describe('basico integracion', () => {
     })
   })
   describe('clean', () => {
-    it('si hay varias copias decrementa el i', () => {
-      store.subStore('kjdhfgkjywer')
-      assert(substore.i === 2)
-      substore.clean()
-      assert(substore.i === 1)
-    })
-    it('elimina las suscripciones y los substores', () => {
-      expect.assertions(1)
+    it('elimina las suscripciones', () => {
+      assert(substore.i === 1, 'Hay más copias del substore, no se puede hacer el test')
       substore.subscribeKey('mrty6', (state) => {
         assert.fail()
       })
-      substore.substores['test'] = {
-        clean () {
-          expect(true).toBe(true)
-        }
-      }
       substore.clean()
       store.hydrate({ kjdhfgkjywer: { mrty6: '75843' } })
-      assert.throws(() => substore.clean(), new Error('subStore cleaned'))
-    })
-  })
-})
-
-describe('callback de inicialización', () => {
-  it('cuando se crea un substore se llama al callback de init', () => {
-    expect.assertions(1)
-    store.subStore('kjhdfg', () => {
-      expect(true).toBe(true)
-    })
-  })
-  it('las siguientes veces no se llama', () => {
-    store.subStore('kjhdfg', () => {
-      assert.fail()
     })
   })
 })
