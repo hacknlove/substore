@@ -40,7 +40,7 @@ assert(MySubstore3.i === 1)
 ### `substore.getState()`
 Returns the state of the substore
 
-### `susbstore.setReducer(reducer)`
+### `substore.setReducer(reducer)`
 Set a reducer to that substore, to process the actions dispatched in the substore.
 
 ### `substore.dispatch(action)`
@@ -59,14 +59,14 @@ If `replace === true`, it replaces the old state with the new one.
 If `replace !== true`, it replaces the old state with the merge of the new one in the old one.
 
 ### `substore.subscribe(callback)`
-Returns a unsuscribe function.
+Returns a unsubscribe function.
 
-The callback is called each time the substore's state changes, until unsuscribe funcion is called.
+The callback is called each time the substore's state changes, until unsubscribe funcion is called.
 
 ### `substore.subscribeKey(key, callback)`
-Returns a unsuscribe function.
+Returns a unsubscribe function.
 
-The callback is called each time the substore's state's value at `key` changes, until unsuscribe funcion is called.
+The callback is called each time the substore's state's value at `key` changes, until unsubscribe funcion is called.
 
 ### `substore.clean()`
 If this is the last substore at its `key`, it removes all subscriptions, all reducers, stop all useRedux hooks and cleans all substore's substores. After that every substore method will throw `new Error('subStore cleaned')`

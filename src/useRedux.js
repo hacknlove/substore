@@ -7,11 +7,11 @@ const { getValue } = require('@hacknlove/deepobject')
 function useReduxFull (store) {
   const [value, set] = useState(store.getState())
   useEffect(() => {
-    const unsuscribe = store.subscribe(() => {
+    const unsubscribe = store.subscribe(() => {
       set(store.getState())
     })
     return () => {
-      unsuscribe()
+      unsubscribe()
     }
   })
   return value
